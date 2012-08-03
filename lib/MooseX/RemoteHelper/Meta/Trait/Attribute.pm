@@ -10,15 +10,14 @@ Moose::Util::meta_attribute_alias 'RemoteHelper';
 
 has remote_name => (
 	predicate => 'has_remote_name',
-	isa       => 'Str',
+	isa       => 'Str|HashRef',
 	is        => 'ro',
 );
 
 has serializer => (
 	predicate => 'has_serializer',
 	traits    => ['Code'],
-	is        => 'ro',
-	reader    => undef,
+	is        => 'bare',
 	handles   => {
 		serializing => 'execute_method',
 	},
@@ -34,21 +33,36 @@ sub serialized {
 }
 
 around initialize_instance_slot => sub {
-	my $orig = shift;
-	my $self = shift;
-
-	my ( $meta_instance, $instance, $params ) = @_;
+	my ( $orig, $self )          = ( shift, shift );
+	my ( undef, undef, $params ) = @_;
 
 	return $self->$orig(@_)
 		unless $self->has_remote_name ## no critic ( ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions )
 			&& $self->has_init_arg
-			&& $self->remote_name ne $self->init_arg
+			&& (
+				( ref $self->remote_name() eq ''
+				&& $self->remote_name ne $self->init_arg
+				)
+				|| ( ref $self->remote_name() eq 'HASH'
+					&& scalar values $self->remote_name == 1
+					&& ( values $self->remote_name() )[0] ne $self->init_arg()
+				)
+			)
 			;
 
-	$params->{ $self->init_arg }
-		= delete   $params->{ $self->remote_name }
-		if defined $params->{ $self->remote_name }
-		;
+	# move values referred to by remote names to their corresponding init_args
+	my $arg                      = $self->init_arg();
+
+	my $remote                 = $self->remote_name();
+
+	if ( ref $remote eq '' ) {
+		$params->{ $arg } = delete $params->{ $remote } if $params->{ $remote };
+	}
+	else { # remote_name is a hash
+		foreach my $item ( values %$remote ) {
+			$params->{ $arg } = delete $params->{ $item } if $params->{ $item };
+		}
+	}
 
 	$self->$orig(@_);
 };
