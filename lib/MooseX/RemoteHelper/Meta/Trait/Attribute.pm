@@ -36,19 +36,27 @@ around initialize_instance_slot => sub {
 	my ( $orig, $self )          = ( shift, shift );
 	my ( undef, undef, $params ) = @_;
 
-	return $self->$orig(@_)
-		unless $self->has_remote_name ## no critic ( ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions )
-			&& $self->has_init_arg
-			&& (
-				( ref $self->remote_name() eq ''
-				&& $self->remote_name ne $self->init_arg
-				)
-				|| ( ref $self->remote_name() eq 'HASH'
-					&& scalar values $self->remote_name == 1
-					&& ( values $self->remote_name() )[0] ne $self->init_arg()
-				)
-			)
-			;
+	# Nothing to do if no remote names differ from the init arg value
+	if ( $self->has_init_arg() && $self->has_remote_name() ) {
+		if (
+			ref $self->remote_name() eq '' && $self->remote_name() eq $self->init_arg()
+		) {
+			return $self->$orig(@_);
+		}
+		else {
+			if ( ref $self->remote_name() eq 'HASH' ) {
+				my $names = { map { $_ => 1 } values $self->remote_name() };
+
+				if ( scalar keys %$names == 1 ) {
+					my ( $name ) = keys %$names;
+
+					if ( $name eq $self->init_arg() ) {
+						return $self->$orig( @_ );
+					}
+				}
+			}
+		}
+	}
 
 	# move values referred to by remote names to their corresponding init_args
 	my $arg                      = $self->init_arg();
