@@ -6,6 +6,7 @@ use namespace::autoclean;
 # VERSION
 
 use Moose::Role;
+
 Moose::Util::meta_attribute_alias 'RemoteHelper';
 
 has remote_name => (
@@ -60,14 +61,13 @@ around initialize_instance_slot => sub {
 
 	# move values referred to by remote names to their corresponding init_args
 	my $arg                      = $self->init_arg();
-
 	my $remote                 = $self->remote_name();
 
 	if ( ref $remote eq '' ) {
 		$params->{ $arg } = delete $params->{ $remote } if $params->{ $remote };
 	}
 	else { # remote_name is a hash
-		foreach my $item ( values %$remote ) {
+		foreach my $item ( keys %$remote ) {
 			$params->{ $arg } = delete $params->{ $item } if $params->{ $item };
 		}
 	}
