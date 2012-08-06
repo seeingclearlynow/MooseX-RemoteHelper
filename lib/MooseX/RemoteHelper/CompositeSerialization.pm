@@ -8,7 +8,7 @@ use namespace::autoclean;
 use Moose::Role;
 
 sub serialize {
-	my $self = shift;
+	my ( $self, $remote ) = @_;
 
 	my %serialized;
 
@@ -22,6 +22,15 @@ sub serialize {
 			) {
 			if ( $attr->has_remote_name ) {
 				my $value = $attr->get_value( $self );
+				my $name  = $attr->remote_name();
+				my $key = '';
+
+				if ( ref $name eq '' ) {
+					$key  = $name;
+				}
+				else {
+					$key  = $name->{ $remote };
+				}
 
 				# we need to be able to return an explicit undef
 				# run recursively on an sub object that can do this
@@ -30,19 +39,19 @@ sub serialize {
 
 				# value not blessed just return the leaf
 				if ( $attr->has_serializer ) {
-					$serialized{ $attr->remote_name }
+					$serialized{ $key }
 						= $attr->serialized( $self )
 						;
 				}
 				# is the value a composite object?
 				# we should recursively run this on it
 				elsif ( blessed $value && $value->can('serialize') ) {
-					$serialized{ $attr->remote_name } = $value->serialize;
+					$serialized{ $key } = $value->serialize;
 				}
 				# is it just a plain old object?
 				# check for a serializer and run that, or ignore
 				else {
-					$serialized{ $attr->remote_name }
+					$serialized{ $key }
 						= $value
 						unless blessed $value
 						;
