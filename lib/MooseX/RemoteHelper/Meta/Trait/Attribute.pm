@@ -39,40 +39,25 @@ around initialize_instance_slot => sub {
 
 	# Nothing to do if no remote names differ from the init arg value
 	if ( $self->has_init_arg() && $self->has_remote_name() ) {
-		if (
-			ref $self->remote_name() eq '' && $self->remote_name() eq $self->init_arg()
-		) {
-			return $self->$orig(@_);
+		my $arg                      = $self->init_arg();
+		my $remote                 = $self->remote_name();
+
+		# move values referred to by remote names to their corresponding init_args
+		if ( ref $remote eq '' ) {
+			$params->{ $arg } = delete $params->{ $remote }
+				if defined $params->{ $remote } && $remote ne $arg;
 		}
 		else {
-			if ( ref $self->remote_name() eq 'HASH' ) {
-				my $names = { map { $_ => 1 } values $self->remote_name() };
-
-				if ( scalar keys %$names == 1 ) {
-					my ( $name ) = keys %$names;
-
-					if ( $name eq $self->init_arg() ) {
-						return $self->$orig( @_ );
-					}
+			if ( ref $remote eq 'HASH' ) {
+				foreach my $item ( keys %$remote ) {
+					$params->{ $arg } = delete $params->{ $item }
+						if defined $params->{ $item } && $item ne $arg;
 				}
 			}
 		}
 	}
 
-	# move values referred to by remote names to their corresponding init_args
-	my $arg                      = $self->init_arg();
-	my $remote                 = $self->remote_name();
-
-	if ( ref $remote eq '' ) {
-		$params->{ $arg } = delete $params->{ $remote } if $params->{ $remote };
-	}
-	else { # remote_name is a hash
-		foreach my $item ( keys %$remote ) {
-			$params->{ $arg } = delete $params->{ $item } if $params->{ $item };
-		}
-	}
-
-	$self->$orig(@_);
+	return $self->$orig( @_ );
 };
 
 1;

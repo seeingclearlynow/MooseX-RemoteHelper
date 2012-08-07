@@ -8,32 +8,35 @@ use namespace::autoclean;
 use Moose::Role;
 
 around _inline_slot_initializer => sub {
-	my $orig = shift;
-	my $self = shift;
-	my ( $attr, $index ) = @_;
-
-	my @orig_source = $self->$orig(@_);
+	my ( $orig, $self ) = ( shift, shift );
+	my ( $attr )        = @_;
+	my @orig_source     = $self->$orig(@_);
 
 	return @orig_source
 		unless $attr->meta->can('does_role')
 			&& $attr->meta->does_role('MooseX::RemoteHelper::Meta::Trait::Attribute')
 			;
 
-	return $self->$orig(@_)
-		unless $attr->has_remote_name ## no critic ( ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions )
-			&& $attr->has_init_arg
-			&& $attr->remote_name ne $attr->init_arg
-			;
+	if ( $attr->has_remote_name() && $attr->has_init_arg() ) {
+		my $arg           = $attr->init_arg;
+		my $remote        = $attr->remote_name();
+		my $code          = '';
 
-	my $init_arg = $attr->init_arg;
+		if ( ref $remote eq '' ) {
+			$code =
+				"\$params->{$arg} = delete \$params->{$remote} if defined \$params->{$remote};";
+		}
+		elsif ( ref $remote eq 'HASH' ) {
+			$code =
+				"foreach my \$item ( keys \%\$params ) {\n
+					\$params->{$arg} = delete \$params->{\$item} if defined \$params->{\$item} && \$item ne '$arg';
+				}";
+		}
 
-	return (
-		' $params->{' . $init_arg . '} '
-		. ' = delete $params->{' .  $attr->remote_name . '} '
-		. ' if defined $params->{' . $attr->remote_name . '}; '
-		, @orig_source
-		)
-		;
+		return ( $code, @orig_source );
+		}
+
+	return @orig_source;
 };
 
 1;
