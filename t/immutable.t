@@ -14,27 +14,39 @@ use Test::Moose;
 		is          => 'ro',
 		required    => 1,
 	);
+
+	has thing => (
+		remote_name => { local => 'thing', other => 'thingy' },
+		isa         => 'Str',
+		is          => 'ro',
+		required    => 1,
+	);
+
 	__PACKAGE__->meta->make_immutable;
 }
 
-my $t0 = Test->new({ attr => 'foo' });
+my $t0 = Test->new({ attr => 'foo', thingy => 'bar' });
 
 isa_ok $t0, 'Test';
-can_ok $t0, 'attr';
-can_ok $t0, 'meta';
+can_ok $t0, 'attr', 'thing', 'meta';
 
 isa_ok my $attr0 = $t0->meta->get_attribute('attr'), 'Class::MOP::Attribute';
+isa_ok my $attr1 = $t0->meta->get_attribute('thing'), 'Class::MOP::Attribute';
 
 does_ok $attr0, 'MooseX::RemoteHelper::Meta::Trait::Attribute';
+does_ok $attr1, 'MooseX::RemoteHelper::Meta::Trait::Attribute';
 
-can_ok $attr0, 'has_remote_name';
-can_ok $attr0, 'remote_name';
+can_ok $attr0, 'has_remote_name', 'remote_name';
+can_ok $attr1, 'has_remote_name', 'remote_name';
 
 ok $attr0->has_remote_name, 'has remote_name';
 is $attr0->remote_name, 'attribute', 'remote_name is attribute';
+ok $attr1->has_remote_name, 'has remote_name';
+is_deeply $attr1->remote_name, { local => 'thing', other => 'thingy' }, 'remote_name matches';
 
-my $t1 = Test->new({ attribute => 'foo' });
+my $t1 = Test->new({ attribute => 'foo', thing => 'bar' });
 
 is $t1->attr, 'foo', 'attr matches';
+is $t1->thing, 'bar', 'thing matches';
 
 done_testing;
