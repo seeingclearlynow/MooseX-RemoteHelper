@@ -26,12 +26,26 @@ use Test::Moose;
 
 	has _attr2 => (
 		isa      => 'Str',
-		is       => 'ro',
+		is       => 'bare',
 		lazy     => 1,
 		default  => sub { 'foo' },
 		init_arg => undef,
-		reader   => undef,
-		writer   => undef,
+	);
+
+	has attr3 => (
+		isa      => 'Str',
+		is       => 'bare',
+		lazy     => 1,
+		default  => sub { 'bar' },
+		remote_name => 'thing',
+	);
+
+	has attr4 => (
+		isa      => 'Str',
+		is       => 'bare',
+		lazy     => 1,
+		default  => sub { 'bar' },
+		remote_name => { local => 'Thing', remote => 'Thingy' },
 	);
 }
 
@@ -74,6 +88,24 @@ subtest t3 => sub {
 	isa_ok my $attr2 = $t->meta->get_attribute('_attr2'), 'Class::MOP::Attribute';
 
 	is $attr2->serialized( $t ),  'foo',    'attr2 serializes';
+	isa_ok $t, 'Test';
+};
+
+subtest t4 => sub {
+	my $t = Test->new({ thing => 'baz' });
+
+	isa_ok my $attr3 = $t->meta->get_attribute('attr3'), 'Class::MOP::Attribute';
+
+	is $attr3->serialized( $t ),  'baz',    'attr3 serializes';
+	isa_ok $t, 'Test';
+};
+
+subtest t5 => sub {
+	my $t = Test->new({ Thingy => 'zoom' });
+
+	isa_ok my $attr4 = $t->meta->get_attribute('attr4'), 'Class::MOP::Attribute';
+
+	is $attr4->serialized( $t ),  'zoom',    'attr4 serializes';
 	isa_ok $t, 'Test';
 };
 
