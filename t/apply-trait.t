@@ -23,7 +23,7 @@ has dwelling => (
 );
 }
 
-my $t0 = Test->new({ attr => 'foo', here => 1000 });
+my $t0 = Test->new({ attr => 'foo', apartment => 1000 });
 
 isa_ok $t0, 'Test';
 can_ok $t0, 'meta', 'attr', 'dwelling';
