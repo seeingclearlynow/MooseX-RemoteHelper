@@ -49,7 +49,7 @@ around initialize_instance_slot => sub {
 		}
 		else {
 			if ( ref $remote eq 'HASH' ) {
-				foreach my $item ( keys %$remote ) {
+				foreach my $item ( values %$remote ) {
 					$params->{ $arg } = delete $params->{ $item }
 						if defined $params->{ $item } && $item ne $arg;
 				}

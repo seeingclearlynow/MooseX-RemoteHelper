@@ -27,14 +27,13 @@ around _inline_slot_initializer => sub {
 				"\$params->{$arg} = delete \$params->{$remote} if defined \$params->{$remote};";
 		}
 		elsif ( ref $remote eq 'HASH' ) {
-			$code =
-				"foreach my \$item ( keys \%\$params ) {\n
-					\$params->{$arg} = delete \$params->{\$item} if defined \$params->{\$item} && \$item ne '$arg';
-				}";
+			foreach my $key ( values %$remote ) {
+				$code .= "\$params->{$arg} = delete \$params->{$key} if ( \$params->{$key} && '$key' ne '$arg' );\n";
+			}
 		}
 
 		return ( $code, @orig_source );
-		}
+	}
 
 	return @orig_source;
 };
