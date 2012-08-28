@@ -1,5 +1,6 @@
 use strict;
 use warnings;
+use Data::Dump 'dump';
 use Test::More;
 use Test::Moose;
 
@@ -116,5 +117,83 @@ my %expected = (
 );
 
 is_deeply $comp->serialize, \%expected, 'serialize';
+
+{
+package Blah;
+
+use Moose;
+use MooseX::RemoteHelper;
+
+with 'MooseX::RemoteHelper::CompositeSerialization';
+
+has succeeded => (
+	isa         => 'Bool',
+	is          => 'rw',
+	default     => 1,
+	required    => 0,
+	remote_name => { local => 'successful', remote => 'is_success' },
+	serializer => sub {
+		my ( $attr, $instance ) = @_;
+
+		return $attr->get_value( $instance ) ? 'y' : 'n';
+	},
+	lazy        => 1,
+);
+
+has plain => (
+	isa         => 'Object',
+	is          => 'rw',
+	default     => sub { Plain->new() },
+	required    => 0,
+	remote_name => { local => 'ordinary', remote => 'regular' },
+	serializer => sub {
+		my ( $attr, $instance ) = @_;
+
+		return $attr->get_value( $instance )->some_value();
+	},
+	lazy        => 1,
+);
+
+has compit => (
+	isa         => 'CompositeTop',
+	is          => 'rw',
+	default     => sub {
+		return CompositeTop->new( {
+			leaf     => 'foo',
+			sub_leaf => 'Baz',
+			true     => 1,
+			undef    => undef,
+		} )
+	},
+	required    => 0,
+	remote_name => { local => 'ct', remote => 'target_test' },
+	init_arg  => undef,
+	serializer => sub {
+		my ( $attr, $instance ) = @_;
+
+		return $attr->get_value( $instance )->serialize();
+	},
+	lazy        => 1,
+);
+}
+
+my $thing = Blah->new( successful => 0 );
+
+my $hash     = {
+	succeeded  =>  'n',
+	plain      => 'value',
+	compit     => \%expected,
+};
+
+is $thing->succeeded(), 0, 'succeeded is false';
+is_deeply $thing->serialize(), $hash, 'Object serializes properly';
+
+$hash        = {
+	successful => 'n',
+	ordinary   => 'value',
+	ct         => \%expected,
+};
+
+is_deeply $thing->serialize( 'local' ), $hash, 'Object serializes properly';
 
 done_testing;

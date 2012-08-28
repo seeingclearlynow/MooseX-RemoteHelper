@@ -29,7 +29,11 @@ sub serialize {
 					$key  = $name;
 				}
 				else {
-					$key  = $name->{ $remote };
+					$key  = $name->{ $remote } if ( $remote && $name->{$remote} );
+
+					$key  ||= $attr->init_arg() if $attr->has_init_arg();
+
+					$key  ||= $attr->name();
 				}
 
 				# we need to be able to return an explicit undef
