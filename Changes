@@ -1,5 +1,7 @@
 Revision history for {{$dist->name}}
 {{$NEXT}}
+	- Add support for remote name hashes
+	- Add support for custom serialization per remote name
 
 0.001011  2012-06-12
 	- non trial release
