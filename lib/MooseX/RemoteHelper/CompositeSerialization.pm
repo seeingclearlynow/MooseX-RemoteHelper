@@ -44,13 +44,13 @@ sub serialize {
 				# value not blessed just return the leaf
 				if ( $attr->has_serializer ) {
 					$serialized{ $key }
-						= $attr->serialized( $self )
+						= $attr->serialized( $self, $remote )
 						;
 				}
 				# is the value a composite object?
 				# we should recursively run this on it
 				elsif ( blessed $value && $value->can('serialize') ) {
-					$serialized{ $key } = $value->serialize;
+					$serialized{ $key } = $value->serialize( $remote );
 				}
 				# is it just a plain old object?
 				# check for a serializer and run that, or ignore

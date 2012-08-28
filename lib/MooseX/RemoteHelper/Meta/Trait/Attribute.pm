@@ -25,10 +25,10 @@ has serializer => (
 );
 
 sub serialized {
-	my ( $self, $instance ) = @_;
+	my ( $self, $instance, $remote ) = @_;
 
 	return $self->has_serializer
-		? $self->serializing( $instance )
+		? $self->serializing( $instance, $remote )
 		: $self->get_value( $instance )
 		;
 }

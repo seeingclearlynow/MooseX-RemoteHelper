@@ -133,9 +133,13 @@ has succeeded => (
 	required    => 0,
 	remote_name => { local => 'successful', remote => 'is_success' },
 	serializer => sub {
-		my ( $attr, $instance ) = @_;
+		my ( $attr, $instance, $remote ) = @_;
 
-		return $attr->get_value( $instance ) ? 'y' : 'n';
+		( defined $remote && $remote eq 'local' ) ?
+			return $attr->get_value( $instance ) ? 'y' : 'n'
+		:
+			return $attr->get_value( $instance ) ? 'true' : 'false'
+		;
 	},
 	lazy        => 1,
 );
@@ -169,9 +173,14 @@ has compit => (
 	remote_name => { local => 'ct', remote => 'target_test' },
 	init_arg  => undef,
 	serializer => sub {
-		my ( $attr, $instance ) = @_;
+		my ( $attr, $instance, $remote ) = @_;
 
-		return $attr->get_value( $instance )->serialize();
+		if ( defined $remote && $remote eq 'local' ) {
+			return $attr->get_value( $instance )->serialize( $remote );
+		}
+		else {
+			return {};
+		}
 	},
 	lazy        => 1,
 );
@@ -180,9 +189,9 @@ has compit => (
 my $thing = Blah->new( successful => 0 );
 
 my $hash     = {
-	succeeded  =>  'n',
+	succeeded  =>  'false',
 	plain      => 'value',
-	compit     => \%expected,
+	compit     => {},
 };
 
 is $thing->succeeded(), 0, 'succeeded is false';
@@ -195,5 +204,13 @@ $hash        = {
 };
 
 is_deeply $thing->serialize( 'local' ), $hash, 'Object serializes properly';
+
+$hash         = {
+	is_success  => 'false',
+	regular     => 'value',
+	target_test => {},
+};
+
+is_deeply $thing->serialize( 'remote' ), $hash, 'Object serializes properly';
 
 done_testing;
